@@ -1,0 +1,89 @@
+---
+title: "hurricanes"
+author: "Aaron Dantzler"
+date: "2023-06-07"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Read in RDS
+```{r}
+library("readr")
+data <- read_rds("C:\\Users\\aaron\\Downloads\\data_hurricane_text.rds")
+```
+
+# Prepare for Corpus
+```{r}
+colnames(data)[9] ="text_field"
+```
+
+# Remove newlines
+```{r}
+data$text_field <- sapply(data$text_field,
+                                    function(x) { gsub("[\r\n]", "", x) })
+```
+
+# Combine news segments
+```{r}
+library("dplyr")
+dataset <- data %>%
+  group_by(source, Date, Time, Show) %>%
+  mutate(text_field=paste(text_field,collapse = " ")) %>%
+  slice(1)
+```
+
+# Prepare for Corpus
+```{r}
+dataset$index <- 1:nrow(dataset)
+colnames(dataset)[16] ="docid_field"
+```
+
+```{r}
+saveRDS(dataset, file = "hurricanes.rds")
+```
+
+```{r}
+write.csv(dataset, "hurricanes.csv", row.names=FALSE)
+```
+
+
+# ```{r}
+# dataset$Group <- paste(dataset$Date, dataset$Time, dataset$Show)
+# ```
+
+# Make Corpus
+```{r}
+library("quanteda")
+dataset$text_field <- as.character(dataset$text_field)
+my_corpus <- corpus(
+  dataset,
+  docid_field = "docid_field",
+  text_field = "text_field"
+) 
+```
+
+# my_corpus
+# summary(my_corpus)
+# as.character(my_corpus)[1]
+
+```{r}
+my_corpus <- corpus_reshape(my_corpus, to = "paragraphs", use_docvars = TRUE)
+```
+
+# ```{r}
+# corpus_grouped = corpus_group(my_corpus, groups = Group, fill = FALSE,
+#                               concatenator = " ")
+# ```
+
+# ```{r}
+# corpus_grouped_para <- corpus_reshape(corpus_grouped, to = "paragraphs")
+# ```
+
+
+
+```{r}
+
+```
