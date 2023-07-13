@@ -1,0 +1,118 @@
+---
+title: "stmHurricanes"
+author: "Aaron Dantzler"
+date: "2023-07-03"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+set.seed(1000)
+sI = sessionInfo()
+sI
+```
+
+```{r}
+library("stm")
+data <- read.csv("D:\\Princeton\\BSPL\\df_combined.csv")
+processed <- textProcessor(data$text_field, metadata = data)
+out <- prepDocuments(processed$documents, processed$vocab, processed$meta)
+docs <- out$documents
+vocab <- out$vocab
+meta <- out$meta
+```
+```{r}
+plotRemoved(processed$documents, lower.thresh = seq(1, 200, by = 100))
+```
+```{r}
+out <- prepDocuments(processed$documents, processed$vocab, processed$meta, 
+                     lower.thresh = 30)
+```
+```{r}
+hurricaneModel <- stm(documents = out$documents, vocab = out$vocab, K = 30,
+                      prevalence =~ FOX + MSNBC + ARTHUR + BARRY + DELTA + 
+                      DORIAN + ETA + FLORENCE + HANNA + HARVEY + HERMINE + 
+                      IRMA + LAURA + MICHAEL + SALLY, content =~ Y.N.Score,
+                      seed = 1000,
+                      max.em.its = 75, data = out$meta, init.type = "Spectral")
+```
+```{r}
+labelTopics(hurricaneModel, c(10, 15, 16, 27))
+
+```
+```{r}
+thoughts10 <- findThoughts(hurricaneModel, texts = out$meta$text_field, n = 2, 
+                          topics = 10)$docs[[1]]
+thoughts15 <- findThoughts(hurricaneModel, texts = out$meta$text_field, n = 2, 
+                          topics = 15)$docs[[1]]
+thoughts16 <- findThoughts(hurricaneModel, texts = out$meta$text_field, n = 2, 
+                          topics = 16)$docs[[1]]
+```
+
+```{r}
+par(mfrow = c(1, 2),mar = c(.5, .5, 1, .5))
+plotQuote(thoughts10, width = 30, main = "Topic 10")
+plotQuote(thoughts15, width = 30, main = "Topic 15")
+plotQuote(thoughts16, width = 30, main = "Topic 16")
+```
+```{r}
+prep <- estimateEffect(1:30 ~ FOX + MSNBC + ARTHUR + BARRY + DELTA + 
+                      DORIAN + ETA + FLORENCE + HANNA + HARVEY + HERMINE + 
+                      IRMA + LAURA + MICHAEL + SALLY,
+                      hurricaneModel, meta = out$meta, uncertainty = "Global")
+summary(prep, topics=1:30)
+```
+```{r}
+par(fig = c(0, 1, 0, 1))  # Set the figure region (left, right, bottom, top)
+par(plt = c(0, 1, 0, 1))  # Set the plot region (left, right, bottom, top)
+plot(hurricaneModel, type = "summary", xlim = c(0, .2))
+```
+
+```{r}
+plot(prep, covariate = "MSNBC", topics = c(1:30),
+model = hurricaneModel, method = "difference",
+cov.value1 = 1, cov.value2 = 0,
+xlab = "Other Networks ... MSNBC",
+main = "Effect of MSNBC",
+xlim = c(-.1, .1), labeltype = "custom",
+custom.labels = c('Evacuate', 'Democrat','Climate Change'))
+```
+```{r}
+plot(prep, covariate = "FOX", topics = c(10, 15, 16),
+model = hurricaneModel, method = "difference",
+cov.value1 = 1, cov.value2 = 0,
+xlab = "Other Networks ... FOX",
+main = "Effect of FOX",
+xlim = c(-.1, .1), labeltype = "custom",
+custom.labels = c('Evacuate', 'Democrat','Climate Change'))
+```
+```{r}
+plot(hurricaneModel, type = "perspectives", topics = 15)
+```
+```{r}
+hurricaneContent <- stm(out$documents, out$vocab, K = 30,
+                      prevalence =~ FOX + MSNBC + ARTHUR + BARRY + DELTA + 
+                      DORIAN + ETA + FLORENCE + HANNA + HARVEY + HERMINE + 
+                      IRMA + LAURA + MICHAEL + SALLY, 
+                      content =~ MSNBC, max.em.its = 75, data = out$meta, 
+                      init.type = "Spectral")
+```
+```{r}
+plot(hurricaneContent, type = "perspectives", topics = 16)
+```
+```{r}
+hurricaneContent <- stm(out$documents, out$vocab, K = 30,
+                      prevalence =~ FOX + MSNBC + ARTHUR + BARRY + DELTA + 
+                      DORIAN + ETA + FLORENCE + HANNA + HARVEY + HERMINE + 
+                      IRMA + LAURA + MICHAEL + SALLY, 
+                      content =~ FOX, max.em.its = 75, data = out$meta, 
+                      init.type = "Spectral")
+```
+```{r}
+plot(hurricaneContent, type = "perspectives", topics = 16)
+```
+
+
